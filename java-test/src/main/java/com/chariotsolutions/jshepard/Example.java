@@ -7,40 +7,46 @@ import org.springframework.context.annotation.ComponentScan;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.Comparator;
+
 import javax.annotation.PostConstruct;
 
 @RestController
 @EnableAutoConfiguration
 @ComponentScan
 public class Example {
-  private ExampleRepository exampleRepository;
-  private ExampleSetup exampleSetup;
+	private ExampleRepository exampleRepository;
+	private ExampleSetup exampleSetup;
 
-  @PostConstruct
-  public void initialize() {
-    exampleSetup.initializeData();
-  }
+	@PostConstruct
+	public void initialize() {
+		exampleSetup.initializeData();
+	}
 
-  @RequestMapping("/")
-  String home() {
-    return
-        "<h3>Names</h3>" +
-        exampleRepository.getAllNames().toString() +
-        "<h3>First Names</h3>" +
-        exampleRepository.getAllFirstNames().toString();
-  }
+	@RequestMapping("/")
+	String home() {
 
-  @Autowired
-  public void setExampleRepository(ExampleRepository exampleRepository) {
-    this.exampleRepository = exampleRepository;
-  }
+		Comparator<Name> ncomp = ((Comparator<Name>) (n1, n2) -> n1.getLastName().compareTo(n2.getLastName()))
+				.thenComparing((n1, n2) -> n1.getFirstName().compareTo(n2.getFirstName()));
 
-  @Autowired
-  public void setExampleSetup(ExampleSetup exampleSetup) {
-    this.exampleSetup = exampleSetup;
-  }
+		return "<h3>Names</h3>"
+				+ exampleRepository.getAllNames().stream().sorted(ncomp)
+						.map(n -> n.getLastName() + " " + n.getFirstName()).reduce((s, acc) -> s + "<br />" + acc).get()
+				+ "<h3>First Names</h3>"
+				+ exampleRepository.getAllFirstNames().stream().sorted().reduce((n, acc) -> n + ", " + acc).get();
+	}
 
-  public static void main(String... args) throws Exception {
-    SpringApplication.run(Example.class, args);
-  }
+	@Autowired
+	public void setExampleRepository(ExampleRepository repository) {
+		exampleRepository = repository;
+	}
+
+	@Autowired
+	public void setExampleSetup(ExampleSetup setup) {
+		exampleSetup = setup;
+	}
+
+	public static void main(String... args) throws Exception {
+		SpringApplication.run(Example.class, args);
+	}
 }
